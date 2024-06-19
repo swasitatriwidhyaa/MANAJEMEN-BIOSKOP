@@ -146,10 +146,10 @@ class PesananDialog(simpledialog.Dialog):
         self.e1.grid(row=0, column=1)
         self.e2.grid(row=1, column=1)
 
-        # Pilihan seat
+        # Untuk memilih seat
         tk.Button(master, text="Pilih Seat", command=self.pilih_seat).grid(row=2, column=0, columnspan=2)
 
-        # Pilihan makanan
+        # Untuk memilih makanan yang mau dipesan
         tk.Button(master, text="Pilih Makanan", command=self.pilih_makanan).grid(row=3, column=0, columnspan=2)
 
         return self.e1  # initial focus
@@ -208,7 +208,7 @@ class PesananDialog(simpledialog.Dialog):
             id_film = int(self.e1.get())
             jumlah_tiket = int(self.e2.get())
 
-            # Menghitung total harga
+            # Untuk menghitung total harga (keseluruha yang dipesan)
             film = next(film for film in self.manajemen_bioskop.lihat_film() if film.id == id_film)
             total_harga_makanan = sum(harga * jumlah for makanan, harga, jumlah in self.makanans)
             total_harga_tiket = jumlah_tiket * film.harga
