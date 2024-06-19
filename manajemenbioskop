@@ -220,3 +220,22 @@ class PesananDialog(simpledialog.Dialog):
             self.result = self.orders
         except Exception as e:
             messagebox.showerror("Error", f"Input tidak valid. Pastikan semua kolom terisi dengan benar: {e}")
+
+class WelcomePage:
+    def __init__(self, root):
+        self.root = root
+        self.root.title("Welcome")
+        self.root.geometry("400x300")
+        self.root.configure(bg='maroon')
+
+        self.create_widgets()
+
+    def create_widgets(self):
+        tk.Label(self.root, text="Selamat datang di Sistem Manajemen Bioskop!", font=("Helvetica", 16), bg='maroon', fg='white').pack(pady=20)
+        tk.Button(self.root, text="Masuk", command=self.open_cinema_app, bg='white', fg='maroon').pack()
+
+    def open_cinema_app(self):
+        self.root.destroy()
+        root = tk.Tk()
+        CinemaApp(root)
+        root.mainloop()
