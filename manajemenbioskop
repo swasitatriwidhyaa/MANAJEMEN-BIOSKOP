@@ -239,3 +239,93 @@ class WelcomePage:
         root = tk.Tk()
         CinemaApp(root)
         root.mainloop()
+
+class CinemaApp:
+    def __init__(self, root):
+        self.root = root
+        self.root.title("Cinema Management System")
+        self.root.geometry("600x400")
+        self.root.configure(bg='maroon')
+        self.manajemen_bioskop = ManajemenBioskop()
+
+        self.create_widgets()
+
+    def create_widgets(self):
+        tk.Button(self.root, text="Tambah Film", command=self.tambah_film_gui, bg='white', fg='maroon').pack(fill=tk.BOTH)
+        tk.Button(self.root, text="Lihat Film", command=self.lihat_film_gui, bg='white', fg='maroon').pack(fill=tk.BOTH)
+        tk.Button(self.root, text="Update Film", command=self.update_film_gui, bg='white', fg='maroon').pack(fill=tk.BOTH)
+        tk.Button(self.root, text="Hapus Film", command=self.hapus_film_gui, bg='white', fg='maroon').pack(fill=tk.BOTH)
+        tk.Button(self.root, text="Cari Film", command=self.cari_film_gui, bg='white', fg='maroon').pack(fill=tk.BOTH)
+        tk.Button(self.root, text="Import Data dari CSV", command=self.import_data_gui, bg='white', fg='maroon').pack(fill=tk.BOTH)
+        tk.Button(self.root, text="Tambah Pesanan", command=self.tambah_pesanan_gui, bg='white', fg='maroon').pack(fill=tk.BOTH)
+        tk.Button(self.root, text="Lihat Riwayat Pesanan", command=self.lihat_riwayat_pesanan_gui, bg='white', fg='maroon').pack(fill=tk.BOTH)
+        tk.Button(self.root, text="Keluar", command=self.logout, bg='white', fg='maroon').pack(fill=tk.BOTH)
+
+    def logout(self):
+        self.root.destroy()
+        root = tk.Tk()
+        WelcomePage(root)
+        root.mainloop()
+
+    def tambah_film_gui(self):
+        result = FilmDialog(self.root).result
+        if result:
+            film = Film(result["id"], result["judul"], result["genre"], result["durasi"], result["harga"])
+            self.manajemen_bioskop.tambah_film(film)
+            tk.messagebox.showinfo("Info", "Film berhasil ditambahkan!")
+
+    def lihat_film_gui(self):
+        films = self.manajemen_bioskop.lihat_film()
+        film_text = "\n\n".join([str(film) for film in films])
+        tk.messagebox.showinfo("Daftar Film", film_text if films else "Tidak ada film yang tersedia.")
+
+    def update_film_gui(self):
+        try:
+            id = int(simpledialog.askstring("Input", "Masukkan ID Film yang akan diupdate:"))
+            judul_baru = simpledialog.askstring("Input", "Masukkan judul baru:")
+            genre_baru = simpledialog.askstring("Input", "Masukkan genre baru:")
+            durasi_baru = int(simpledialog.askstring("Input", "Masukkan durasi baru (dalam menit):"))
+            harga_baru = int(simpledialog.askstring("Input", "Masukkan harga baru (dalam IDR):"))
+            if self.manajemen_bioskop.update_film(id, judul_baru, genre_baru, durasi_baru, harga_baru):
+                tk.messagebox.showinfo("Info", "Film berhasil diupdate!")
+            else:
+                tk.messagebox.showerror("Error", "Film tidak ditemukan!")
+        except ValueError:
+            messagebox.showerror("Error", "ID Film harus berupa angka.")
+
+    def hapus_film_gui(self):
+        try:
+            id = int(simpledialog.askstring("Input", "Masukkan ID Film yang akan dihapus:"))
+            if self.manajemen_bioskop.hapus_film(id):
+                tk.messagebox.showinfo("Info", "Film berhasil dihapus!")
+            else:
+                tk.messagebox.showerror("Error", "Film tidak ditemukan!")
+        except ValueError:
+            messagebox.showerror("Error", "ID Film harus berupa angka.")
+
+    def cari_film_gui(self):
+        keyword = simpledialog.askstring("Input", "Masukkan keyword pencarian:")
+        hasil = self.manajemen_bioskop.cari_film(keyword)
+        if hasil:
+            film_text = "\n\n".join([str(film) for film in hasil])
+            tk.messagebox.showinfo("Hasil Pencarian", film_text)
+        else:
+            tk.messagebox.showinfo("Hasil Pencarian", "Tidak ada film yang ditemukan.")
+
+    def import_data_gui(self):
+        file_path = simpledialog.askstring("Input", "Masukkan path file CSV:")
+        self.manajemen_bioskop.import_data_csv(file_path)
+
+    def tambah_pesanan_gui(self):
+        orders = PesananDialog(self.root, self.manajemen_bioskop).result
+        if orders:
+            total_harga_semua_pesanan = 0
+            for order in orders:
+                self.manajemen_bioskop.tambah_pesanan(order)
+                total_harga_semua_pesanan += order.total_harga
+
+            tk.messagebox.showinfo("Info", f"Pesanan berhasil ditambahkan!\nTotal Harga Semua Pesanan: {total_harga_semua_pesanan} IDR")
+
+    def lihat_riwayat_pesanan_gui(self):
+        riwayat = "\n\n".join([str(pesanan) for pesanan in self.manajemen_bioskop.lihat_riwayat_pesanan()])
+        tk.messagebox.showinfo("Riwayat Pemesanan", riwayat if riwayat else "Tidak ada riwayat pesanan.")
