@@ -115,7 +115,7 @@ class FilmDialog(simpledialog.Dialog):
         self.e4.grid(row=3, column=1)
         self.e5.grid(row=4, column=1)
 
-        return self.e1  # initial focus
+        return self.e1  
 
     def apply(self):
         try:
