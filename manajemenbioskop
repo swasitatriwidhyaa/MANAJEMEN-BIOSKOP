@@ -1,3 +1,117 @@
 import tkinter as tk
 from tkinter import messagebox, simpledialog, Listbox, END, Toplevel
 import csv
+
+class Film:
+    def __init__(self, id, judul, genre, durasi, harga):
+        self.id = id
+        self.judul = judul
+        self.genre = genre
+        self.durasi = durasi
+        self.harga = harga
+        self.seats = self.generate_seats()
+        self.booked_seats = []
+
+    def generate_seats(self):
+        seats = []
+        rows = [chr(i) for i in range(65, 75)]  # A-J
+        for row in rows:
+            for i in range(1, 11):  # 1-10
+                seats.append(f"{row}{i}")
+        return seats
+
+    def book_seats(self, selected_seats):
+        for seat in selected_seats:
+            if seat in self.seats:
+                self.seats.remove(seat)
+                self.booked_seats.append(seat)
+
+    def __str__(self):
+        return f"ID: {self.id}\nJudul: {self.judul}\nGenre: {self.genre}\nDurasi: {self.durasi} menit\nHarga: {self.harga} IDR\nSeats Tersedia: {', '.join(self.seats)}"
+
+class Pesanan:
+    def __init__(self, film, jumlah_tiket, seats, makanans, total_harga):
+        self.film = film
+        self.jumlah_tiket = jumlah_tiket
+        self.seats = seats
+        self.makanans = makanans
+        self.total_harga = total_harga
+
+    def __str__(self):
+        makanan_str = ', '.join(f'{makanan} x{jumlah} ({harga*jumlah} IDR)' for makanan, harga, jumlah in self.makanans)
+        return f"Judul: {self.film.judul}, Harga Tiket: {self.film.harga} IDR, Jumlah Tiket: {self.jumlah_tiket}, Seats: {', '.join(self.seats) if self.seats else 'Tidak ada seat dipilih'}, Makanan: {makanan_str if self.makanans else 'Tidak ada makanan dipilih'}, Total Harga: {self.total_harga} IDR"
+
+class ManajemenBioskop:
+    def __init__(self):
+        self.films = []
+        self.riwayat_pesanan = []
+
+    def tambah_film(self, film):
+        self.films.append(film)
+
+    def lihat_film(self):
+        return self.films
+
+    def update_film(self, id, judul_baru, genre_baru, durasi_baru, harga_baru):
+        for film in self.films:
+            if film.id == id:
+                film.judul = judul_baru
+                film.genre = genre_baru
+                film.durasi = durasi_baru
+                film.harga = harga_baru
+                return True
+        return False
+
+    def hapus_film(self, id):
+        for film in self.films:
+            if film.id == id:
+                self.films.remove(film)
+                return True
+        return False
+
+    def cari_film(self, keyword):
+        hasil = []
+        for film in self.films:
+            if keyword.lower() in film.judul.lower() or keyword.lower() in film.genre.lower():
+                hasil.append(film)
+        return hasil
+
+    def import_data_csv(self, file_path):
+        try:
+            with open(file_path, newline='') as csvfile:
+                reader = csv.reader(csvfile)
+                next(reader)  # Skip header row
+                for row in reader:
+                    film = Film(int(row[0]), row[1], row[2], int(row[3]), int(row[4]))  # assuming CSV has id, judul, genre, durasi, harga
+                    self.tambah_film(film)
+            messagebox.showinfo("Info", "Data berhasil diimpor dari CSV!")
+        except Exception as e:
+            messagebox.showerror("Error", f"Gagal mengimpor data: {e}")
+
+    def tambah_pesanan(self, pesanan):
+        self.riwayat_pesanan.append(pesanan)
+
+    def lihat_riwayat_pesanan(self):
+        return self.riwayat_pesanan
+
+class FilmDialog(simpledialog.Dialog):
+    def body(self, master):
+        tk.Label(master, text="ID:").grid(row=0)
+        tk.Label(master, text="Judul:").grid(row=1)
+        tk.Label(master, text="Genre:").grid(row=2)
+        tk.Label(master, text="Durasi(menit):").grid(row=3)
+        tk.Label(master, text="Harga:").grid(row=4)
+
+        self.e1 = tk.Entry(master)
+        self.e2 = tk.Entry(master)
+        self.e3 = tk.Entry(master)
+        self.e4 = tk.Entry(master)
+        self.e5 = tk.Entry(master)
+
+        self.e1.grid(row=0, column=1)
+        self.e2.grid(row=1, column=1)
+        self.e3.grid(row=2, column=1)
+        self.e4.grid(row=3, column=1)
+        self.e5.grid(row=4, column=1)
+
+        return self.e1  # initial focus
