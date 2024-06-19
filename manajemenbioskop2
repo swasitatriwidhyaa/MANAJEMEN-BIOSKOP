@@ -1,0 +1,345 @@
+import tkinter as tk
+from tkinter import messagebox, simpledialog, Listbox, END, Toplevel
+import csv
+
+class Film:
+    def __init__(self, id, judul, genre, durasi, harga):
+        self.id = id
+        self.judul = judul
+        self.genre = genre
+        self.durasi = durasi
+        self.harga = harga
+        self.seats = self.generate_seats()
+        self.booked_seats = []
+
+    def generate_seats(self):
+        seats = []
+        rows = [chr(i) for i in range(65, 75)]  
+        for row in rows:
+            for i in range(1, 11):  # 1-10
+                seats.append(f"{row}{i}")
+        return seats
+
+    def book_seats(self, selected_seats):
+        for seat in selected_seats:
+            if seat in self.seats:
+                self.seats.remove(seat)
+                self.booked_seats.append(seat)
+
+    def __str__(self):
+        return f"ID: {self.id}\nJudul: {self.judul}\nGenre: {self.genre}\nDurasi: {self.durasi} menit\nHarga: {self.harga} IDR\nSeats Tersedia: {', '.join(self.seats)}"
+
+class Pesanan:
+    def __init__(self, film, nama_pemesan, jumlah_tiket, seats, makanans, total_harga):
+        self.film = film
+        self.nama_pemesan = nama_pemesan
+        self.jumlah_tiket = jumlah_tiket
+        self.seats = seats
+        self.makanans = makanans
+        self.total_harga = total_harga
+
+    def __str__(self):
+        makanan_str = ', '.join(f'{makanan} x{jumlah} ({harga*jumlah} IDR)' for makanan, harga, jumlah in self.makanans)
+        return f"Nama Pemesan: {self.nama_pemesan}\nJudul: {self.film.judul}, Harga Tiket: {self.film.harga} IDR, Jumlah Tiket: {self.jumlah_tiket}, Seats: {', '.join(self.seats) if self.seats else 'Tidak ada seat dipilih'}, Makanan: {makanan_str if self.makanans else 'Tidak ada makanan dipilih'}, Total Harga: {self.total_harga} IDR"
+
+class ManajemenBioskop:
+    def __init__(self):
+        self.films = []
+        self.riwayat_pesanan = []
+
+    def tambah_film(self, film):
+        self.films.append(film)
+
+    def lihat_film(self):
+        return self.films
+
+    def update_film(self, id, judul_baru, genre_baru, durasi_baru, harga_baru):
+        for film in self.films:
+            if film.id == id:
+                film.judul = judul_baru
+                film.genre = genre_baru
+                film.durasi = durasi_baru
+                film.harga = harga_baru
+                return True
+        return False
+
+    def hapus_film(self, id):
+        for film in self.films:
+            if film.id == id:
+                self.films.remove(film)
+                return True
+        return False
+
+    def cari_film(self, keyword):
+        hasil = []
+        for film in self.films:
+            if keyword.lower() in film.judul.lower() or keyword.lower() in film.genre.lower():
+                hasil.append(film)
+        return hasil
+
+    def import_data_csv(self, file_path):
+        try:
+            with open(file_path, newline='') as csvfile:
+                reader = csv.reader(csvfile)
+                next(reader)  # Skip header row
+                for row in reader:
+                    film = Film(int(row[0]), row[1], row[2], int(row[3]), int(row[4]))  # assuming CSV has id, judul, genre, durasi, harga
+                    self.tambah_film(film)
+            messagebox.showinfo("Info", "Data berhasil diimpor dari CSV!")
+        except Exception as e:
+            messagebox.showerror("Error", f"Gagal mengimpor data: {e}")
+
+    def tambah_pesanan(self, pesanan):
+        self.riwayat_pesanan.append(pesanan)
+
+    def lihat_riwayat_pesanan(self):
+        return self.riwayat_pesanan
+
+class FilmDialog(simpledialog.Dialog):
+    def body(self, master):
+        tk.Label(master, text="ID:").grid(row=0)
+        tk.Label(master, text="Judul:").grid(row=1)
+        tk.Label(master, text="Genre:").grid(row=2)
+        tk.Label(master, text="Durasi(menit):").grid(row=3)
+        tk.Label(master, text="Harga:").grid(row=4)
+
+        self.e1 = tk.Entry(master)
+        self.e2 = tk.Entry(master)
+        self.e3 = tk.Entry(master)
+        self.e4 = tk.Entry(master)
+        self.e5 = tk.Entry(master)
+
+        self.e1.grid(row=0, column=1)
+        self.e2.grid(row=1, column=1)
+        self.e3.grid(row=2, column=1)
+        self.e4.grid(row=3, column=1)
+        self.e5.grid(row=4, column=1)
+
+        return self.e1  # initial focus
+
+    def apply(self):
+        try:
+            self.result = {
+                "id": int(self.e1.get()),
+                "judul": self.e2.get(),
+                "genre": self.e3.get(),
+                "durasi": int(self.e4.get()),
+                "harga": int(self.e5.get())
+            }
+        except ValueError:
+            messagebox.showerror("Error", "Input tidak valid. Pastikan semua kolom terisi dengan benar.")
+
+class PesananDialog(simpledialog.Dialog):
+    def __init__(self, parent, manajemen_bioskop):
+        self.manajemen_bioskop = manajemen_bioskop
+        self.seats = []
+        self.makanans = []
+        self.orders = []
+        super().__init__(parent)
+
+    def body(self, master):
+        tk.Label(master, text="Nama Pemesan:").grid(row=0)
+        tk.Label(master, text="ID Film:").grid(row=1)
+        tk.Label(master, text="Jumlah Tiket:").grid(row=2)
+
+        self.e0 = tk.Entry(master)
+        self.e1 = tk.Entry(master)
+        self.e2 = tk.Entry(master)
+
+        self.e0.grid(row=0, column=1)
+        self.e1.grid(row=1, column=1)
+        self.e2.grid(row=2, column=1)
+
+        # untuk memilih seat dan makanan yang akan dipesan
+        tk.Button(master, text="Pilih Seat", command=self.pilih_seat).grid(row=3, column=0, columnspan=2)
+        tk.Button(master, text="Pilih Makanan", command=self.pilih_makanan).grid(row=4, column=0, columnspan=2)
+
+        return self.e1  # initial focus
+
+    def pilih_seat(self):
+        top = Toplevel(self)
+        top.title("Pilih Seat")
+
+        film_id = int(self.e1.get())
+        film = next((film for film in self.manajemen_bioskop.lihat_film() if film.id == film_id), None)
+        if film:
+            self.seat_listbox = Listbox(top, selectmode=tk.MULTIPLE, bg='maroon', fg='white')
+            for seat in film.seats:
+                self.seat_listbox.insert(END, seat)
+
+            self.seat_listbox.pack()
+
+            def on_ok():
+                selected_seats = [self.seat_listbox.get(i) for i in self.seat_listbox.curselection()]
+                self.seats.extend(selected_seats)
+                film.book_seats(selected_seats)  # Mark seats as booked
+                top.destroy()
+
+            tk.Button(top, text="OK", command=on_ok, bg='maroon', fg='white').pack()
+        else:
+            messagebox.showerror("Error", "Film tidak ditemukan.")
+
+    def pilih_makanan(self):
+        top = Toplevel(self)
+        top.title("Pilih Makanan")
+
+        self.makanan_listbox = Listbox(top, selectmode=tk.MULTIPLE, bg='maroon', fg='white')
+        self.makanan_options = {
+            "Popcorn": 30000,
+            "Minuman Soda": 20000,
+            "Hot Dog": 25000,
+            "Aqua": 10000,
+        }
+        for makanan in self.makanan_options.keys():
+            self.makanan_listbox.insert(END, makanan)
+
+        self.makanan_listbox.pack()
+
+        def on_ok():
+            selected_makanans = [self.makanan_listbox.get(i) for i in self.makanan_listbox.curselection()]
+            for makanan in selected_makanans:
+                jumlah = int(simpledialog.askstring("Input", f"Masukkan jumlah untuk {makanan}:"))
+                harga = self.makanan_options[makanan]
+                self.makanans.append((makanan, harga, jumlah))
+            top.destroy()
+
+        tk.Button(top, text="OK", command=on_ok, bg='maroon', fg='white').pack()
+
+    def apply(self):
+        try:
+            nama_pemesan = self.e0.get()
+            id_film = int(self.e1.get())
+            jumlah_tiket = int(self.e2.get())
+            
+            # Menghitung total harga keseluruhan
+            film = next(film for film in self.manajemen_bioskop.lihat_film() if film.id == id_film)
+            total_harga_makanan = sum(harga * jumlah for makanan, harga, jumlah in self.makanans)
+            total_harga_tiket = jumlah_tiket * film.harga
+            total_harga = total_harga_tiket + total_harga_makanan
+
+            pesanan = Pesanan(film, nama_pemesan, jumlah_tiket, self.seats, self.makanans, total_harga)
+            self.orders.append(pesanan)
+
+            self.result = self.orders
+        except Exception as e:
+            messagebox.showerror("Error", f"Input tidak valid. Pastikan semua kolom terisi dengan benar: {e}")
+
+class WelcomePage:
+    def __init__(self, root):
+        self.root = root
+        self.root.title("Welcome")
+        self.root.geometry("400x300")
+        self.root.configure(bg='maroon')
+
+        self.create_widgets()
+
+    def create_widgets(self):
+        tk.Label(self.root, text="Selamat datang di Sistem Manajemen Bioskop!", font=("Helvetica", 16), bg='maroon', fg='white').pack(pady=20)
+        tk.Button(self.root, text="Masuk", command=self.open_cinema_app, bg='white', fg='maroon').pack()
+
+    def open_cinema_app(self):
+        self.root.destroy()
+        root = tk.Tk()
+        CinemaApp(root)
+        root.mainloop()
+
+class CinemaApp:
+    def __init__(self, root):
+        self.root = root
+        self.root.title("Cinema Management System")
+        self.root.geometry("600x400")
+        self.root.configure(bg='maroon')
+        self.manajemen_bioskop = ManajemenBioskop()
+
+        self.create_widgets()
+
+    def create_widgets(self):
+        tk.Button(self.root, text="Tambah Film", command=self.tambah_film_gui, bg='white', fg='maroon').pack(fill=tk.BOTH)
+        tk.Button(self.root, text="Lihat Film", command=self.lihat_film_gui, bg='white', fg='maroon').pack(fill=tk.BOTH)
+        tk.Button(self.root, text="Update Film", command=self.update_film_gui, bg='white', fg='maroon').pack(fill=tk.BOTH)
+        tk.Button(self.root, text="Hapus Film", command=self.hapus_film_gui, bg='white', fg='maroon').pack(fill=tk.BOTH)
+        tk.Button(self.root, text="Cari Film", command=self.cari_film_gui, bg='white', fg='maroon').pack(fill=tk.BOTH)
+        tk.Button(self.root, text="Import Data dari CSV", command=self.import_data_gui, bg='white', fg='maroon').pack(fill=tk.BOTH)
+        tk.Button(self.root, text="Tambah Pesanan", command=self.tambah_pesanan_gui, bg='white', fg='maroon').pack(fill=tk.BOTH)
+        tk.Button(self.root, text="Lihat Riwayat Pesanan", command=self.lihat_riwayat_pesanan_gui, bg='white', fg='maroon').pack(fill=tk.BOTH)
+        tk.Button(self.root, text="Keluar", command=self.logout, bg='white', fg='maroon').pack(fill=tk.BOTH)
+
+    def logout(self):
+        self.root.destroy()
+        root = tk.Tk()
+        WelcomePage(root)
+        root.mainloop()
+
+    def tambah_film_gui(self):
+        result = FilmDialog(self.root).result
+        if result:
+            film = Film(result["id"], result["judul"], result["genre"], result["durasi"], result["harga"])
+            self.manajemen_bioskop.tambah_film(film)
+            tk.messagebox.showinfo("Info", "Film berhasil ditambahkan!")
+
+    def lihat_film_gui(self):
+        films = self.manajemen_bioskop.lihat_film()
+        film_text = "\n\n".join([str(film) for film in films])
+        tk.messagebox.showinfo("Daftar Film", film_text if films else "Tidak ada film yang tersedia.")
+
+    def update_film_gui(self):
+        try:
+            id = int(simpledialog.askstring("Input", "Masukkan ID Film yang akan diupdate:"))
+            judul_baru = simpledialog.askstring("Input", "Masukkan judul baru:")
+            genre_baru = simpledialog.askstring("Input", "Masukkan genre baru:")
+            durasi_baru = int(simpledialog.askstring("Input", "Masukkan durasi baru (dalam menit):"))
+            harga_baru = int(simpledialog.askstring("Input", "Masukkan harga baru (dalam IDR):"))
+            if self.manajemen_bioskop.update_film(id, judul_baru, genre_baru, durasi_baru, harga_baru):
+                tk.messagebox.showinfo("Info", "Film berhasil diupdate!")
+            else:
+                tk.messagebox.showerror("Error", "Film tidak ditemukan!")
+        except ValueError:
+            messagebox.showerror("Error", "ID Film harus berupa angka.")
+
+    def hapus_film_gui(self):
+        try:
+            id = int(simpledialog.askstring("Input", "Masukkan ID Film yang akan dihapus:"))
+            if self.manajemen_bioskop.hapus_film(id):
+                tk.messagebox.showinfo("Info", "Film berhasil dihapus!")
+            else:
+                tk.messagebox.showerror("Error", "Film tidak ditemukan!")
+        except ValueError:
+            messagebox.showerror("Error", "ID Film harus berupa angka.")
+
+    def cari_film_gui(self):
+        keyword = simpledialog.askstring("Input", "Masukkan keyword pencarian:")
+        hasil = self.manajemen_bioskop.cari_film(keyword)
+        if hasil:
+            film_text = "\n\n".join([str(film) for film in hasil])
+            tk.messagebox.showinfo("Hasil Pencarian", film_text)
+        else:
+            tk.messagebox.showinfo("Hasil Pencarian", "Tidak ada film yang ditemukan.")
+
+    def import_data_gui(self):
+        file_path = simpledialog.askstring("Input", "Masukkan path file CSV:")
+        self.manajemen_bioskop.import_data_csv(file_path)
+
+    def tambah_pesanan_gui(self):
+        dialog = PesananDialog(self.root, self.manajemen_bioskop)
+        dialog_result = dialog.result
+        if dialog_result:
+            nama_pemesan = dialog_result[0].nama_pemesan  
+            total_harga_semua_pesanan = 0
+            for order in dialog_result:
+                self.manajemen_bioskop.tambah_pesanan(order)
+                total_harga_semua_pesanan += order.total_harga
+
+            tk.messagebox.showinfo("Info", f"Pesanan berhasil ditambahkan!\nTotal Harga Semua Pesanan: {total_harga_semua_pesanan} IDR")
+
+    def lihat_riwayat_pesanan_gui(self):
+        riwayat = "\n\n".join([str(pesanan) for pesanan in self.manajemen_bioskop.lihat_riwayat_pesanan()])
+        tk.messagebox.showinfo("Riwayat Pemesanan", riwayat if riwayat else "Tidak ada riwayat pesanan.")
+
+def main():
+    root = tk.Tk()
+    root.configure(bg='maroon')
+    WelcomePage(root)
+    root.mainloop()
+
+if __name__ == "__main__":
+    main()
