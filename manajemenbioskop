@@ -80,14 +80,14 @@ class ManajemenBioskop:
         try:
             with open(file_path, newline='') as csvfile:
                 reader = csv.reader(csvfile)
-                next(reader)  
+                next(reader)  # Skip header row
                 for row in reader:
                     film = Film(int(row[0]), row[1], row[2], int(row[3]), int(row[4]))  # assuming CSV has id, judul, genre, durasi, harga
                     self.tambah_film(film)
             messagebox.showinfo("Info", "Data berhasil diimpor dari CSV!")
         except Exception as e:
             messagebox.showerror("Error", f"Gagal mengimpor data: {e}")
-
+    
     def tambah_pesanan(self, pesanan):
         self.riwayat_pesanan.append(pesanan)
 
