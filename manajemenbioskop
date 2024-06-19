@@ -329,3 +329,12 @@ class CinemaApp:
     def lihat_riwayat_pesanan_gui(self):
         riwayat = "\n\n".join([str(pesanan) for pesanan in self.manajemen_bioskop.lihat_riwayat_pesanan()])
         tk.messagebox.showinfo("Riwayat Pemesanan", riwayat if riwayat else "Tidak ada riwayat pesanan.")
+
+def main():
+    root = tk.Tk()
+    root.configure(bg='maroon')
+    WelcomePage(root)
+    root.mainloop()
+
+if __name__ == "__main__":
+    main()
