@@ -115,3 +115,108 @@ class FilmDialog(simpledialog.Dialog):
         self.e5.grid(row=4, column=1)
 
         return self.e1  # initial focus
+
+def apply(self):
+        try:
+            self.result = {
+                "id": int(self.e1.get()),
+                "judul": self.e2.get(),
+                "genre": self.e3.get(),
+                "durasi": int(self.e4.get()),
+                "harga": int(self.e5.get())
+            }
+        except ValueError:
+            messagebox.showerror("Error", "Input tidak valid. Pastikan semua kolom terisi dengan benar.")
+
+class PesananDialog(simpledialog.Dialog):
+    def __init__(self, parent, manajemen_bioskop):
+        self.manajemen_bioskop = manajemen_bioskop
+        self.seats = []
+        self.makanans = []
+        self.orders = []
+        super().__init__(parent)
+
+    def body(self, master):
+        tk.Label(master, text="ID Film:").grid(row=0)
+        tk.Label(master, text="Jumlah Tiket:").grid(row=1)
+
+        self.e1 = tk.Entry(master)
+        self.e2 = tk.Entry(master)
+
+        self.e1.grid(row=0, column=1)
+        self.e2.grid(row=1, column=1)
+
+        # Pilihan seat
+        tk.Button(master, text="Pilih Seat", command=self.pilih_seat).grid(row=2, column=0, columnspan=2)
+
+        # Pilihan makanan
+        tk.Button(master, text="Pilih Makanan", command=self.pilih_makanan).grid(row=3, column=0, columnspan=2)
+
+        return self.e1  # initial focus
+
+    def pilih_seat(self):
+        top = Toplevel(self)
+        top.title("Pilih Seat")
+
+        film_id = int(self.e1.get())
+        film = next((film for film in self.manajemen_bioskop.lihat_film() if film.id == film_id), None)
+        if film:
+            self.seat_listbox = Listbox(top, selectmode=tk.MULTIPLE, bg='maroon', fg='white')
+            for seat in film.seats:
+                self.seat_listbox.insert(END, seat)
+
+            self.seat_listbox.pack()
+
+            def on_ok():
+                selected_seats = [self.seat_listbox.get(i) for i in self.seat_listbox.curselection()]
+                self.seats.extend(selected_seats)
+                film.book_seats(selected_seats)  # Mark seats as booked
+                top.destroy()
+
+            tk.Button(top, text="OK", command=on_ok, bg='maroon', fg='white').pack()
+        else:
+            messagebox.showerror("Error", "Film tidak ditemukan.")
+
+    def pilih_makanan(self):
+        top = Toplevel(self)
+        top.title("Pilih Makanan")
+
+        self.makanan_listbox = Listbox(top, selectmode=tk.MULTIPLE, bg='maroon', fg='white')
+        self.makanan_options = {
+            "Popcorn": 30000,
+            "Minuman Soda": 20000,
+            "Hot Dog": 25000,
+            "Aqua": 10000,
+        }
+        for makanan in self.makanan_options.keys():
+            self.makanan_listbox.insert(END, makanan)
+
+        self.makanan_listbox.pack()
+
+        def on_ok():
+            selected_makanans = [self.makanan_listbox.get(i) for i in self.makanan_listbox.curselection()]
+            for makanan in selected_makanans:
+                jumlah = int(simpledialog.askstring("Input", f"Masukkan jumlah untuk {makanan}:"))
+                harga = self.makanan_options[makanan]
+                self.makanans.append((makanan, harga, jumlah))
+            top.destroy()
+
+        tk.Button(top, text="OK", command=on_ok, bg='maroon', fg='white').pack()
+
+    def apply(self):
+        try:
+            id_film = int(self.e1.get())
+            jumlah_tiket = int(self.e2.get())
+
+            # Menghitung total harga
+            film = next(film for film in self.manajemen_bioskop.lihat_film() if film.id == id_film)
+            total_harga_makanan = sum(harga * jumlah for makanan, harga, jumlah in self.makanans)
+            total_harga_tiket = jumlah_tiket * film.harga
+            total_harga = total_harga_tiket + total_harga_makanan
+
+            pesanan = Pesanan(film, jumlah_tiket, self.seats, self.makanans, total_harga)
+            self.orders.append(pesanan)
+
+            self.result = self.orders
+        except Exception as e:
+            messagebox.showerror("Error", f"Input tidak valid. Pastikan semua kolom terisi dengan benar: {e}")
